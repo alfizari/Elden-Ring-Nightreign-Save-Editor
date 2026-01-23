@@ -90,10 +90,7 @@ class RelicChecker:
                     else:
                         test_result.append(InvalidReason.NONE)
                 else:
-                    if eff in [-1, 0, 4294967295]:
-                        # Empty effect is OK (slot just not used)
-                        test_result.append(InvalidReason.NONE)
-                    elif eff not in self.data_source.get_pool_rollable_effects(pools[idx]):
+                    if eff not in self.data_source.get_pool_rollable_effects(pools[idx]):
                         # Effect must have non-zero weight in the pool to be valid
                         test_result.append(InvalidReason.EFF_NOT_IN_ROLLABLE_POOL)
                     else:
@@ -590,22 +587,11 @@ class RelicChecker:
                 effect_pool = pools[idx]
                 curse_pool = pools[idx + 3]
 
-                # Skip empty effects
-                if effect in [-1, 0, 4294967295]:
-                    continue
-
                 # Check effect is valid in the pool (any pool, not just deep)
                 pool_effects = self.data_source.get_pool_effects_strict(effect_pool)
-                if effect not in pool_effects:
+                if effect not in pool_effects and (pool_effects or effect not in [-1, 0, 4294967295]):
                     sequence_strict_valid = False
                     break
-
-                # For deep pools, also check strict validity
-                if effect_pool in deep_pools:
-                    specific_pool_effects = self.data_source.get_pool_effects_strict(effect_pool)
-                    if effect not in specific_pool_effects:
-                        sequence_strict_valid = False
-                        break
 
                 # Check curse requirements
                 if self.data_source.effect_needs_curse(effect):
