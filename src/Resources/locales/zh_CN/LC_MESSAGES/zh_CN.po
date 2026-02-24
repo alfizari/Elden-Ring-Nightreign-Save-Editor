@@ -160,6 +160,10 @@ msgstr "此角色暂未添加任何预设方案"
 msgid "➕ Add Relic"
 msgstr "➕ 新增遗物"
 
+#: Final.py:4518
+msgid "➕ Batch Add Relic"
+msgstr "➕ 批量新增遗物"
+
 #: Final.py:4515
 msgid "🔄 Refresh Inventory"
 msgstr "🔄 刷新库存"

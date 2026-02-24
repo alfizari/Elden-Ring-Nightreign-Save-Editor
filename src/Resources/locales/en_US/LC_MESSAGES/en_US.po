@@ -162,6 +162,10 @@ msgstr "No saved presets for this character"
 msgid "➕ Add Relic"
 msgstr "➕ Add Relic"
 
+#: Final.py:4518
+msgid "➕ Batch Add Relic"
+msgstr "➕ Batch Add Relic"
+
 #: Final.py:4515
 msgid "🔄 Refresh Inventory"
 msgstr "🔄 Refresh Inventory"

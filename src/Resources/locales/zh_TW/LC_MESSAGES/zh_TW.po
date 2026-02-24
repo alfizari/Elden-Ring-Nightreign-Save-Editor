@@ -162,6 +162,10 @@ msgstr "此角色還沒有設定任何預置配裝"
 msgid "➕ Add Relic"
 msgstr "➕ 新增遺物"
 
+#: Final.py:4518
+msgid "➕ Batch Add Relic"
+msgstr "➕ 批量新增遺物"
+
 #: Final.py:4515
 msgid "🔄 Refresh Inventory"
 msgstr "🔄 重新整理物品欄"

@@ -191,7 +191,7 @@ class HeroLoadout:
         result_msgs = []
         for idx, im_v in enumerate(im_vessels):
             if idx not in vessel_indices:
-                result_msgs.append(f"{game_data.vessels[im_v["vessel_id"]].name} skipped.")
+                result_msgs.append(f"{game_data.vessels[im_v['vessel_id']].name} skipped.")
                 continue
             for v in self.vessels:
                 if v["vessel_id"] == im_v["vessel_id"]:

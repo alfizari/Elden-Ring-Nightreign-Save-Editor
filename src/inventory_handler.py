@@ -614,6 +614,28 @@ class InventoryHandler:
             self.parse()  # Just make sure everything is fine
             return True, self.entries[empty_entry_index].ga_handle
 
+    def batch_add_relics(self, count: int, relic_type: str = "normal", update_progress=None):
+        with self._lock:
+            logger.info(f"Batch adding {count} {relic_type} relics")
+            added_gas = []
+            failed_count = 0
+
+            for i in range(count):
+                try:
+                    success, ga = self.add_relic_to_inventory(relic_type=relic_type)
+                    if success:
+                        added_gas.append(ga)
+                    if update_progress:
+                        update_progress(int((i + 1) / count * 100), f"Added {i + 1}/{count} relics...")
+                except Exception as e:
+                    logger.error(f"Failed to add relic {i + 1}: {e}")
+                    failed_count += 1
+                    if failed_count > 5:  # Stop after too many failures
+                        break
+
+            logger.info(f"Batch add complete. Added {len(added_gas)}, failed {failed_count}")
+            return len(added_gas), added_gas
+
     def remove_relic_from_inventory(self, ga_handel):
         with self._lock:
             logger.info("Removing relic from inventory")

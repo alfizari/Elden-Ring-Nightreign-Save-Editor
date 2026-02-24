@@ -4509,6 +4509,15 @@ class SaveEditorGUI:
         lang_mgr.register(btn_add_relic, N_("➕ Add Relic"))
         btn_add_relic.pack(side="left", padx=5)
 
+        btn_batch_add = ttk.Button(
+            controls_frame,
+            text="➕ Batch Add Relic",
+            style="Add.TButton",
+            command=self.batch_add_relic_tk,
+        )
+        lang_mgr.register(btn_batch_add, N_("➕ Batch Add Relic"))
+        btn_batch_add.pack(side="left", padx=5)
+
         btn_refresh = ttk.Button(
             controls_frame, text="🔄 Refresh Inventory", command=self.reload_inventory
         )
@@ -6164,6 +6173,26 @@ class SaveEditorGUI:
                 self.modify_selected_relic()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to add relic: {e}")
+
+    def batch_add_relic_tk(self):
+        if globals.data is None:
+            messagebox.showwarning(
+                "Warning", "No save file loaded. Please open a save file first."
+            )
+            return
+        dialog = BatchAddRelicDialog(self.root)
+        if not dialog.result:
+            return
+        try:
+            added_count, added_gas = self.inventory_handler.batch_add_relics(
+                count=dialog.result,
+                relic_type=dialog.relic_type
+            )
+            if added_count > 0:
+                msg_info("Success", f"Successfully added {added_count} relics. Refreshing inventory.")
+                self.refresh_inventory_and_vessels()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to batch add relics: {e}")
 
     def _find_valid_relic_id_for_effects(self, current_id, effects):
         """Find a valid relic ID that can have the given effects (must be same color)"""
@@ -8319,6 +8348,100 @@ class SearchDialog:
 
 import tkinter as tk
 from tkinter import ttk
+
+
+class BatchAddRelicDialog(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("Batch Add Relics")
+        self.result = None
+        self.relic_type = None
+        self.resizable(False, False)
+
+        main_frame = ttk.Frame(self, padding="10 10 10 10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        ttk.Label(
+            main_frame,
+            text="Select relic type and number to add.\nNote: Type cannot be changed later.",
+            justify=tk.CENTER,
+        ).pack(pady=10)
+
+        type_frame = ttk.Frame(main_frame)
+        type_frame.pack(pady=10)
+        ttk.Label(type_frame, text="Relic Type:").pack(side=tk.LEFT, padx=5)
+        self.type_var = tk.StringVar(value="normal")
+        ttk.Radiobutton(
+            type_frame,
+            text="Normal",
+            variable=self.type_var,
+            value="normal"
+        ).pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(
+            type_frame,
+            text="Deep",
+            variable=self.type_var,
+            value="deep"
+        ).pack(side=tk.LEFT, padx=5)
+
+        count_frame = ttk.Frame(main_frame)
+        count_frame.pack(pady=10)
+        ttk.Label(count_frame, text="Number to Add:").pack(side=tk.LEFT, padx=5)
+        self.count_var = tk.IntVar(value=10)
+        count_spinbox = ttk.Spinbox(
+            count_frame,
+            from_=1,
+            to=1000,
+            textvariable=self.count_var,
+            width=10
+        )
+        count_spinbox.pack(side=tk.LEFT, padx=5)
+
+        btn_frame = ttk.Frame(main_frame)
+        btn_frame.pack(pady=10)
+        ttk.Button(
+            btn_frame,
+            text="OK",
+            command=self.on_ok,
+            style="Add.TButton"
+        ).pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            btn_frame,
+            text="Cancel",
+            command=lambda: self.set_result(None)
+        ).pack(side=tk.LEFT, padx=5)
+
+        self.protocol("WM_DELETE_WINDOW", lambda: self.set_result(None))
+        self.center_window(parent)
+        self.focus_force()
+        self.transient(parent)
+        self.grab_set()
+        self.wait_window(self)
+
+    def center_window(self, parent):
+        self.update_idletasks()
+        w = self.winfo_width()
+        h = self.winfo_height()
+        parent_w = parent.winfo_width()
+        parent_h = parent.winfo_height()
+        parent_x = parent.winfo_x()
+        parent_y = parent.winfo_y()
+        x = parent_x + (parent_w // 2) - (w // 2)
+        y = parent_y + (parent_h // 2) - (h // 2)
+        self.geometry(f"+{x}+{y}")
+
+    def on_ok(self):
+        count = self.count_var.get()
+        if count < 1:
+            messagebox.showwarning("Warning", "Please enter a valid number greater than 0.")
+            return
+        self.relic_type = self.type_var.get()
+        self.result = count
+        self.destroy()
+
+    def set_result(self, value):
+        self.result = value
+        self.destroy()
 
 
 class RelicTypeSelector(tk.Toplevel):
