@@ -4670,7 +4670,7 @@ class SaveEditorGUI:
         lang_mgr.register(lb_search, N_("🔍 Search:"))
         lb_search.pack(side="left", padx=5)
         self.search_var = tk.StringVar()
-        self.search_var.trace("w", lambda *args: self.filter_relics())
+        self.search_var.trace_add("write", lambda *args: self.filter_relics())
 
         self.search_entry = ttk.Entry(
             search_frame, textvariable=self.search_var, width=25
@@ -7111,7 +7111,7 @@ class ModifyRelicDialog:
         item_entry_frame.pack(fill="x", pady=5)
 
         self.item_id_var = tk.StringVar()
-        self.item_id_var.trace("w", lambda *args: self._on_item_id_change())
+        self.item_id_var.trace_add("write", lambda *args: self._on_item_id_change())
         self.item_id_entry = ttk.Entry(
             item_entry_frame, width=15, textvariable=self.item_id_var
         )
@@ -8128,7 +8128,7 @@ class SearchDialog:
             side="left", padx=5
         )
         self.search_var = tk.StringVar()
-        self.search_var.trace("w", lambda *args: self.filter_results())
+        self.search_var.trace_add("write", lambda *args: self.filter_results())
 
         search_entry = ttk.Entry(search_frame, textvariable=self.search_var)
         search_entry.pack(side="left", fill="x", expand=True, padx=5)
@@ -8196,8 +8196,8 @@ class SearchDialog:
             checkbox_lock_color.pack(side="left", padx=5, pady=5)
             combobox_color.pack(side="left", padx=5, pady=5)
 
-            self.lock_color_var.trace("w", lambda *args: self.filter_results())
-            self.color_var.trace("w", lambda *args: self.filter_results())
+            self.lock_color_var.trace_add("write", lambda *args: self.filter_results())
+            self.color_var.trace_add("write", lambda *args: self.filter_results())
             self.color_var.trace_add("write", lambda *args: color_map_to_int())
 
             # Relic Type Row
@@ -8213,7 +8213,7 @@ class SearchDialog:
                 state="readonly",
             )
             combobox_type.pack(side="left")
-            self.relic_type_var.trace("w", lambda *args: self.filter_results())
+            self.relic_type_var.trace_add("write", lambda *args: self.filter_results())
 
             # Structure filters
             ttk.Label(filter_frame, text="Effect Slots:").pack(
