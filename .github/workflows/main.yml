@@ -12,58 +12,49 @@ jobs:
         include:
           - name: Windows 64-bit
             os: windows-latest
-            python-architecture: 'x64'
             spec: src/build.spec
             artifact: Elden_Ring_Save_Editor_WIN64
             artifact-path: dist/
           - name: Windows 32-bit
             os: windows-latest
-            python-architecture: 'x86'
             spec: src/build_win32.spec
             artifact: Elden_Ring_Save_Editor_WIN32
             artifact-path: dist/Elden_Ring_Save_Editor_WIN32.exe
+            uv-python: cpython-3.14-windows-i686
           - name: Linux x86_64
             os: ubuntu-latest
-            python-architecture: 'x64'
             spec: src/build.spec
             artifact: Elden_Ring_Save_Editor_LINUX_x86_64
             artifact-path: dist/
           - name: macOS Silicon
             os: macos-latest
-            python-architecture: 'arm64'
             spec: src/build_mac.spec
             artifact: Elden_Ring_Save_Editor_MAC-Silicon
+            artifact-path: dist/*.app
           - name: macOS Intel
             os: macos-15-intel
-            python-architecture: 'x64'
             spec: src/build_mac.spec
             artifact: Elden_Ring_Save_Editor_MAC-Intel
+            artifact-path: dist/*.app
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
-      - name: Setup Python
-        uses: actions/setup-python@v6
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.14'
-          architecture: ${{ matrix.python-architecture }}
+          enable-cache: true
       - name: Setup MSVC for Win32
         if: matrix.name == 'Windows 32-bit'
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
       - name: Install Dependencies
-        run: pip install cryptography pyinstaller openpyxl orjson pandas lxml pillow
+        run: uv sync ${{ matrix.uv-python && format('--python {0}', matrix.uv-python) || '' }}
       - name: Build Executable
-        run: pyinstaller ${{ matrix.spec }}
-        env:
-          PYTHONPATH: ${{ runner.workspace }}/src
-      - name: Package macOS App
-        if: startsWith(matrix.os, 'macos')
-        run: |
-          cd dist && zip -r ${{ matrix.artifact }}.zip *.app && mv ${{ matrix.artifact }}.zip ../
+        run: uv run pyinstaller ${{ matrix.spec }}
       - name: Upload Artifact
         uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ matrix.artifact-path || format('{0}.zip', matrix.artifact) }}
+          path: ${{ matrix.artifact-path }}
