@@ -3678,7 +3678,7 @@ class SaveEditorGUI:
     #     search_var = tk.StringVar()
     #     search_entry = ttk.Entry(options_frame, textvariable=search_var, width=30)
     #     search_entry.pack(side='left', padx=5)
-    #     search_var.trace('w', lambda *args: refresh_list())
+    #     search_var.trace_add('write', lambda *args: refresh_list())
 
     #     # Main content - split into list and details
     #     content_frame = ttk.Frame(dialog)
@@ -4155,8 +4155,8 @@ class SaveEditorGUI:
         )
         equipped_by_cb.pack(side="left", padx=5)
         equipped_by_cb.current(0)
-        equipped_by_var.trace(
-            "w",
+        equipped_by_var.trace_add(
+            "write",
             lambda *args: self.refresh_replacement_list(
                 relic_tree,
                 current_color,
@@ -4175,8 +4175,8 @@ class SaveEditorGUI:
         ttk.Label(options_frame_2, text="Search:").pack(side="left", padx=5)
         search_entry = ttk.Entry(options_frame_2, textvariable=search_var, width=30)
         search_entry.pack(side="left", padx=5, fill="x", expand=True)
-        search_var.trace(
-            "w",
+        search_var.trace_add(
+            "write",
             lambda *args: self.refresh_replacement_list(
                 relic_tree,
                 current_color,
