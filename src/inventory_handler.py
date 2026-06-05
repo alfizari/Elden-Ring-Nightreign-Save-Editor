@@ -422,7 +422,9 @@ class InventoryHandler:
         self.ga_to_acquisition_id = {}
         self._cur_last_instance_id = 0x800054  # start instance id
         self._cur_last_acquisition_id = 0
-        self._cur_last_state_index = 0
+        self._free_state_indices: list[int] = []
+        self._relic_min_index: int | None = None
+        self._relic_max_index: int | None = None
 
         self.relic_gas = []
 
@@ -543,7 +545,12 @@ class InventoryHandler:
                 if state.ga_handle != 0:
                     state_ga_to_index[state.ga_handle] = i
                 self._cur_last_instance_id = max(self._cur_last_instance_id, state.instance_id)
-                self._cur_last_state_index = i if state.ga_handle != 0 else self._cur_last_state_index
+                if state.ga_handle == 0 and i >= self.STATE_SLOT_KEEP_COUNT:
+                    self._free_state_indices.append(i)
+                if state.type_bits == ITEM_TYPE_RELIC and state.ga_handle != 0:
+                    if self._relic_min_index is None:
+                        self._relic_min_index = i
+                    self._relic_max_index = i
                 cur_offset += state.size
 
             cur_offset += 0x94
@@ -589,6 +596,49 @@ class InventoryHandler:
         if parse_after_update:
             self.parse()
 
+    def _pop_free_slot_for_relic(self) -> int:
+        """Select and remove the best free state slot for a new relic.
+
+        Priority order:
+          1. Any free slot inside the relic cluster [min, max] — fill gaps first.
+          2. The nearest free slot to the left of relic_min — extend left.
+          3. The nearest free slot to the right of relic_max — extend right.
+          4. Fallback: the first free slot (smallest index).
+        """
+        free = self._free_state_indices
+        if not free:
+            raise RuntimeError("No empty slot found in inventory states to add relic.")
+
+        relic_min = self._relic_min_index
+        relic_max = self._relic_max_index
+
+        if relic_min is None or relic_max is None:
+            # No relics exist yet — take the smallest free index
+            return free.pop(0)
+
+        # Priority 1: any free slot inside the relic cluster
+        for i in free:
+            if relic_min <= i <= relic_max:
+                free.remove(i)
+                return i
+
+        # Priority 2: nearest free slot to the left of relic_min
+        left_candidates = [i for i in free if i < relic_min]
+        if left_candidates:
+            i = max(left_candidates)
+            free.remove(i)
+            return i
+
+        # Priority 3: nearest free slot to the right of relic_max
+        right_candidates = [i for i in free if i > relic_max]
+        if right_candidates:
+            i = min(right_candidates)
+            free.remove(i)
+            return i
+
+        # Priority 4: fallback — smallest free index
+        return free.pop(0)
+
     def add_relic_to_inventory(self, relic_type: str = "normal"):
         with self._lock:
             logger.info("Adding relic to inventory")
@@ -606,14 +656,8 @@ class InventoryHandler:
             else:
                 raise RuntimeError("No empty slot found in inventory entries to add relic.")
 
-            # Replace Item State after current last item state
-            empty_state_index = -1
-            for i in range(self._cur_last_state_index, self.STATE_SLOT_COUNT):
-                if self.states[i].ga_handle == 0:
-                    empty_state_index = i
-                    break
-            else:
-                raise RuntimeError("No empty slot found in inventory states to add relic.")
+            # Pop an empty state slot with optimal locality for relics
+            empty_state_index = self._pop_free_slot_for_relic()
 
             # Replace Item Entry
             self.entries[empty_entry_index] = ItemEntry.create_from_state(dummy_relic, self.request_new_acquisition_id())
@@ -638,7 +682,6 @@ class InventoryHandler:
             logger.info("Added relic at state index %d", empty_state_index)
             logger.info(f"New Relic State Info:{repr(dummy_relic)}")
             logger.info(f"New Relic Entry Info:{repr(self.entries[empty_entry_index])}")
-            self._cur_last_state_index = empty_state_index
             self.parse()  # Just make sure everything is fine
             return True, self.entries[empty_entry_index].ga_handle
 
@@ -686,7 +729,8 @@ class InventoryHandler:
             logger.info("Fill padding area with 0x00")
             insert_padding_area()
             logger.info("Removed relic at state index %d", target_state_index)
-            self._cur_last_state_index = target_state_index-1
+            if target_state_index >= self.STATE_SLOT_KEEP_COUNT:
+                self._free_state_indices.append(target_state_index)
             self.parse()  # Just make sure everything is fine
             self.remove_illegal(ga_handle)
             return True
@@ -897,7 +941,6 @@ class InventoryHandler:
         logger.debug(f"Vessels: {self.vessels}")
         logger.debug(f"Last Instance ID: {self._cur_last_instance_id}")
         logger.debug(f"Last Acquisition ID: {self._cur_last_acquisition_id}")
-        logger.debug(f"Last State Index: {self._cur_last_state_index}")
 
     def debug_relic_print(self):
         game_data = SourceDataHandler()  # Singleton
